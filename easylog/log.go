@@ -28,7 +28,7 @@ func (h *Hook) Run(e *zerolog.Event, level zerolog.Level, message string) {
 	e.Str(ServiceName, h.serviceName)
 
 	if h.version != "" {
-		e.Str(ServiceVersion, h.serviceName)
+		e.Str(ServiceVersion, h.version)
 	}
 }
 
