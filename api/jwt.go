@@ -8,6 +8,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang-jwt/jwt/v5/request"
 	"github.com/rs/zerolog/log"
+	"github.com/stepanbukhtii/easy-tools/config"
+	"github.com/stepanbukhtii/easy-tools/crypto"
 	"time"
 )
 
@@ -26,12 +28,16 @@ type JWTGenerator struct {
 	ttl        time.Duration
 }
 
-func NewJWTGenerator(issuer string, privateKey *rsa.PrivateKey, ttl time.Duration) *JWTGenerator {
+func NewJWTGenerator(issuer, privateKeyPEM string, ttl time.Duration) (*JWTGenerator, error) {
+	privateKey, err := crypto.DecodeRSAPrivateKey(privateKeyPEM)
+	if err != nil {
+		return nil, err
+	}
 	return &JWTGenerator{
 		issuer:     issuer,
 		privateKey: privateKey,
 		ttl:        ttl,
-	}
+	}, nil
 }
 
 func (g JWTGenerator) GenerateToken(userID string) (string, error) {
@@ -74,15 +80,21 @@ type JWTMiddleware struct {
 	parser    *jwt.Parser
 }
 
-func NewJWTMiddleware(publicKey *rsa.PublicKey, skipValidation bool) *JWTMiddleware {
+func NewJWTMiddleware(publicKeyPEM string, c config.JWT) (*JWTMiddleware, error) {
+	publicKey, err := crypto.DecodeRSAPublicKey(publicKeyPEM)
+	if err != nil {
+		return nil, err
+	}
+
 	var options []jwt.ParserOption
-	if !skipValidation {
+	if c.Enabled {
 		options = append(options, jwt.WithValidMethods([]string{jwt.SigningMethodRS256.Name}))
 	}
+
 	return &JWTMiddleware{
 		publicKey: publicKey,
 		parser:    jwt.NewParser(options...),
-	}
+	}, nil
 }
 
 // JWTAuth parse and verifying JWT token

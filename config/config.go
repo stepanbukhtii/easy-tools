@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 	"strings"
 	"time"
@@ -14,19 +15,25 @@ type Application struct {
 }
 
 type API struct {
-	Address      string        `mapstructure:"ADDRESS"`
-	CORSOrigins  []string      `mapstructure:"CORS_ORIGINS"`
-	JWTPublicKey JWT           `mapstructure:"JWT"`
-	Timeout      time.Duration `mapstructure:"TIMEOUT"`
+	Address     string        `mapstructure:"ADDRESS"`
+	CORSOrigins []string      `mapstructure:"CORS_ORIGINS"`
+	JWT         JWT           `mapstructure:"JWT"`
+	Timeout     time.Duration `mapstructure:"TIMEOUT"`
 }
 
 type JWT struct {
-	Enabled   bool   `mapstructure:"ENABLED"`
-	PublicKey string `mapstructure:"PUBLIC_KEY"`
+	Enabled    bool          `mapstructure:"ENABLED"`
+	PublicKey  string        `mapstructure:"PUBLIC_KEY"`
+	PrivateKey string        `mapstructure:"PRIVATE_KEY"`
+	ClaimsTTL  time.Duration `mapstructure:"CLAIMS_TTL"`
 }
 
 type Log struct {
 	Level string `mapstructure:"LEVEL"`
+}
+
+func (l Log) IsDebug() bool {
+	return strings.EqualFold(l.Level, zerolog.LevelDebugValue)
 }
 
 type DB struct {
@@ -59,7 +66,6 @@ func (db DB) ConnectionString() string {
 }
 
 type Redis struct {
-	Enabled     bool     `mapstructure:"ENABLED"`
 	Addresses   []string `mapstructure:"ADDRESSES"`
 	MasterName  string   `mapstructure:"MASTER"`
 	Password    string   `mapstructure:"PASSWORD"`

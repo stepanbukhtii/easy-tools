@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/stepanbukhtii/easy-tools/config"
 	"net/http"
 	"time"
 )
@@ -50,26 +51,17 @@ type Options struct {
 	CorsConfig       *cors.Config
 }
 
-func New(o *Options) *gin.Engine {
-	var options Options
-
-	if o == nil {
-		options = *o
-	}
-
-	corsConfig := DefaultCorsConfig
-	if options.CorsConfig != nil {
-		corsConfig = *options.CorsConfig
-	}
-	if len(options.CorsAllowOrigins) > 0 {
-		corsConfig.AllowOrigins = options.CorsAllowOrigins
-	}
-
+func NewRouter(c config.API) *gin.Engine {
 	r := gin.New()
 
+	corsConfig := DefaultCorsConfig
+	if len(c.CORSOrigins) > 0 {
+		corsConfig.AllowOrigins = c.CORSOrigins
+	}
+
 	r.Use(
-		Recovery(),
-		MiddlewareLogger(options.LoggerSkipPath),
+		Recovery,
+		MiddlewareLogger,
 		ExtractTraceID,
 		ExtractParams,
 		cors.New(corsConfig),
@@ -79,9 +71,19 @@ func New(o *Options) *gin.Engine {
 		RespondNotFound(c, ErrorCodeInvalidRoute, PathNotFound)
 	})
 
-	r.GET("/health", func(c *gin.Context) {
+	r.GET("/health", MiddlewareSkipLogger, func(c *gin.Context) {
 		RespondOK(c)
 	})
 
 	return r
+}
+
+func NewServer(c config.API, r *gin.Engine) *http.Server {
+	return &http.Server{
+		Addr:           c.Address,
+		Handler:        r,
+		ReadTimeout:    c.Timeout,
+		WriteTimeout:   c.Timeout,
+		MaxHeaderBytes: 1 << 20, // 1 MB
+	}
 }

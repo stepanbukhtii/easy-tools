@@ -3,6 +3,8 @@ package api
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -17,7 +19,14 @@ func TestJWT(t *testing.T) {
 	key, err := rsa.GenerateKey(rand.Reader, 4096)
 	assert.NoError(t, err)
 
-	jwtGenerator := NewJWTGenerator(issuer, key, ttl)
+	privateKeyPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(key),
+	})
+
+	jwtGenerator, err := NewJWTGenerator(issuer, string(privateKeyPEM), ttl)
+	assert.NoError(t, err)
+
 	token, err := jwtGenerator.GenerateToken(userID)
 	assert.NoError(t, err)
 
