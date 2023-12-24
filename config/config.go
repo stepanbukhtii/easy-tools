@@ -76,7 +76,7 @@ type NATS struct {
 
 // Load config from file
 func Load(config any) error {
-	v := viper.NewWithOptions(viper.KeyDelimiter("_"))
+	v := viper.NewWithOptions(viper.EnvKeyReplacer(strings.NewReplacer(".", "_")))
 	v.AutomaticEnv()
 	return v.Unmarshal(config)
 }
