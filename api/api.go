@@ -78,10 +78,10 @@ func NewRouter(c config.API) *gin.Engine {
 	return r
 }
 
-func NewServer(c config.API, r *gin.Engine) *http.Server {
+func NewServer(c config.API, router *gin.Engine) *http.Server {
 	return &http.Server{
 		Addr:           c.Address,
-		Handler:        r,
+		Handler:        router,
 		ReadTimeout:    c.Timeout,
 		WriteTimeout:   c.Timeout,
 		MaxHeaderBytes: 1 << 20, // 1 MB

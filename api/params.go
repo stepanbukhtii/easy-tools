@@ -11,6 +11,7 @@ const (
 
 type Params struct {
 	Subject string
+	Roles   []string
 	Locale  string
 	IPAddr  string
 }
@@ -26,4 +27,16 @@ func ExtractParams(c *gin.Context) {
 	params.IPAddr = c.ClientIP()
 
 	c.Set(KeyParams, params)
+}
+
+func GetParams(c *gin.Context) Params {
+	v, exists := c.Get(KeyParams)
+	if !exists {
+		return Params{}
+	}
+	params, ok := v.(Params)
+	if !ok {
+		return Params{}
+	}
+	return params
 }

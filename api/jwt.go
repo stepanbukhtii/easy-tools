@@ -8,13 +8,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang-jwt/jwt/v5/request"
 	"github.com/rs/zerolog/log"
-	"github.com/stepanbukhtii/easy-tools/config"
 	"github.com/stepanbukhtii/easy-tools/crypto"
 	"time"
-)
-
-const (
-	KeySubjectJWT = "subject"
 )
 
 type ClaimsWithRoles struct {
@@ -80,14 +75,14 @@ type JWTMiddleware struct {
 	parser    *jwt.Parser
 }
 
-func NewJWTMiddleware(publicKeyPEM string, c config.JWT) (*JWTMiddleware, error) {
+func NewJWTMiddleware(publicKeyPEM string, enabled bool) (*JWTMiddleware, error) {
 	publicKey, err := crypto.DecodeRSAPublicKey(publicKeyPEM)
 	if err != nil {
 		return nil, err
 	}
 
 	var options []jwt.ParserOption
-	if c.Enabled {
+	if enabled {
 		options = append(options, jwt.WithValidMethods([]string{jwt.SigningMethodRS256.Name}))
 	}
 
@@ -146,7 +141,9 @@ func (m JWTMiddleware) JWTAuth(c *gin.Context) {
 		return
 	}
 
-	c.Set(KeySubjectJWT, claims.Subject)
+	params := GetParams(c)
+	params.Subject = claims.Subject
+	c.Set(KeyParams, params)
 
 	c.Next()
 }
@@ -210,7 +207,10 @@ func (m JWTMiddleware) JWTAuthRole(role string) gin.HandlerFunc {
 			return
 		}
 
-		c.Set(KeySubjectJWT, claims.Subject)
+		params := GetParams(c)
+		params.Subject = claims.Subject
+		params.Roles = claims.Roles
+		c.Set(KeyParams, claims.Subject)
 
 		c.Next()
 	}
