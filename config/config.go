@@ -53,7 +53,7 @@ func (db DB) ConnectionString() string {
 
 	var params []string
 	if db.Schema != "" {
-		params = append(params, fmt.Sprintf("searchpath=%s", db.Schema))
+		params = append(params, fmt.Sprintf("search_path=%s", db.Schema))
 	}
 	if db.SSLMode != "" {
 		params = append(params, fmt.Sprintf("sslmode=%s", db.SSLMode))
