@@ -14,7 +14,7 @@ const (
 )
 
 type Response struct {
-	Data  any    `json:"data"`
+	Data  any    `json:"data,omitempty"`
 	Error *Error `json:"error,omitempty"`
 	Pages int64  `json:"pages,omitempty"`
 }

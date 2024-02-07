@@ -75,16 +75,20 @@ func MiddlewareLogger(c *gin.Context) {
 
 	latency := time.Now().UTC().Sub(start)
 
-	requestLogger := log.With().
+	logWith := log.With().
 		Int(easylog.HTTPResponseStatusCode, c.Writer.Status()).
 		Str(easylog.HTTPRequestMethod, c.Request.Method).
 		Str(easylog.URLPath, c.Request.URL.RequestURI()).
 		Str(easylog.ClientIP, c.ClientIP()).
 		Dur(easylog.EventDuration, latency).
 		Str(easylog.UserAgentOriginal, c.Request.UserAgent()).
-		Str(easylog.TraceID, c.GetString(HeaderTraceID)).
-		Bytes(easylog.HTTPRequestBodyContent, buf).
-		Logger()
+		Bytes(easylog.HTTPRequestBodyContent, buf)
+
+	if traceID, ok := easycontext.GetTraceID(c.Request.Context()); ok {
+		logWith = logWith.Str(easylog.TraceID, traceID)
+	}
+
+	requestLogger := logWith.Logger()
 
 	switch {
 	case c.Writer.Status() >= http.StatusBadRequest && c.Writer.Status() < http.StatusInternalServerError:

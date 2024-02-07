@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang-jwt/jwt/v5/request"
-	"github.com/rs/zerolog/log"
 	"github.com/stepanbukhtii/easy-tools/crypto"
 	"time"
 )
@@ -23,7 +22,8 @@ type JWTGenerator struct {
 	ttl        time.Duration
 }
 
-func NewJWTGenerator(issuer, privateKeyPEM string, ttl time.Duration) (*JWTGenerator, error) {
+func NewJWTGenerator(issuer, privateKeyString string, ttl time.Duration) (*JWTGenerator, error) {
+	privateKeyPEM := fmt.Sprintf("-----BEGIN RSA PRIVATE KEY-----\n%s\n-----END RSA PRIVATE KEY-----", privateKeyString)
 	privateKey, err := crypto.DecodeRSAPrivateKey(privateKeyPEM)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,8 @@ type JWTMiddleware struct {
 	parser    *jwt.Parser
 }
 
-func NewJWTMiddleware(publicKeyPEM string, enabled bool) (*JWTMiddleware, error) {
+func NewJWTMiddleware(publicKeyString string, enabled bool) (*JWTMiddleware, error) {
+	publicKeyPEM := fmt.Sprintf("-----BEGIN RSA PUBLIC KEY-----\n%s\n-----END RSA PUBLIC KEY-----", publicKeyString)
 	publicKey, err := crypto.DecodeRSAPublicKey(publicKeyPEM)
 	if err != nil {
 		return nil, err
@@ -96,11 +97,6 @@ func NewJWTMiddleware(publicKeyPEM string, enabled bool) (*JWTMiddleware, error)
 func (m JWTMiddleware) JWTAuth(c *gin.Context) {
 	t, err := request.AuthorizationHeaderExtractor.ExtractToken(c.Request)
 	if err != nil {
-		log.Error().
-			Err(err).
-			Str(HeaderTraceID, c.Request.Context().Value(HeaderTraceID).(string)).
-			Str("ip", c.ClientIP()).
-			Msg("Authorization header is empty or malformed")
 		RespondUnauthorized(c, "", NoAuthorizationHeader)
 		return
 	}
@@ -114,29 +110,14 @@ func (m JWTMiddleware) JWTAuth(c *gin.Context) {
 	})
 	if err != nil {
 		if errors.Is(err, jwt.ErrSignatureInvalid) {
-			log.Error().
-				Err(err).
-				Str(HeaderTraceID, c.Request.Context().Value(HeaderTraceID).(string)).
-				Str("ip", c.ClientIP()).
-				Msg("Token signature is not valid")
 			RespondUnauthorized(c, "", InvalidTokenSignature)
 			return
 		}
-		log.Error().
-			Err(err).
-			Str(HeaderTraceID, c.Request.Context().Value(HeaderTraceID).(string)).
-			Str("ip", c.ClientIP()).
-			Msg("Failed to parse jwt token")
 		RespondUnauthorized(c, "", FailedToParseToken)
 		return
 	}
 
 	if !token.Valid {
-		log.Error().
-			Err(err).
-			Str(HeaderTraceID, c.Request.Context().Value(HeaderTraceID).(string)).
-			Str("ip", c.ClientIP()).
-			Msg("Invalid token")
 		RespondUnauthorized(c, "", InvalidToken)
 		return
 	}
@@ -153,11 +134,6 @@ func (m JWTMiddleware) JWTAuthRole(role string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		t, err := request.AuthorizationHeaderExtractor.ExtractToken(c.Request)
 		if err != nil {
-			log.Error().
-				Err(err).
-				Str(HeaderTraceID, c.Request.Context().Value(HeaderTraceID).(string)).
-				Str("ip", c.ClientIP()).
-				Msg("Authorization header is empty or malformed")
 			RespondUnauthorized(c, "", NoAuthorizationHeader)
 			return
 		}
@@ -172,19 +148,9 @@ func (m JWTMiddleware) JWTAuthRole(role string) gin.HandlerFunc {
 		})
 		if err != nil {
 			if errors.Is(err, jwt.ErrSignatureInvalid) {
-				log.Error().
-					Err(err).
-					Str(HeaderTraceID, c.Request.Context().Value(HeaderTraceID).(string)).
-					Str("ip", c.ClientIP()).
-					Msg("Token signature is not valid")
 				RespondUnauthorized(c, "", InvalidTokenSignature)
 				return
 			}
-			log.Error().
-				Err(err).
-				Str(HeaderTraceID, c.Request.Context().Value(HeaderTraceID).(string)).
-				Str("ip", c.ClientIP()).
-				Msg("Failed to parse jwt token")
 			RespondUnauthorized(c, "", FailedToParseToken)
 			return
 		}
@@ -198,11 +164,6 @@ func (m JWTMiddleware) JWTAuthRole(role string) gin.HandlerFunc {
 		}
 
 		if !token.Valid || !hasRole {
-			log.Error().
-				Err(err).
-				Str(HeaderTraceID, c.Request.Context().Value(HeaderTraceID).(string)).
-				Str("ip", c.ClientIP()).
-				Msg("Invalid token")
 			RespondUnauthorized(c, "", InvalidToken)
 			return
 		}
