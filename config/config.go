@@ -15,10 +15,11 @@ type Application struct {
 }
 
 type API struct {
-	Address     string        `mapstructure:"ADDRESS"`
-	CORSOrigins []string      `mapstructure:"CORS_ORIGINS"`
-	JWT         JWT           `mapstructure:"JWT"`
-	Timeout     time.Duration `mapstructure:"TIMEOUT"`
+	Address        string        `mapstructure:"ADDRESS"`
+	CORSOrigins    []string      `mapstructure:"CORS_ORIGINS"`
+	JWT            JWT           `mapstructure:"JWT"`
+	Timeout        time.Duration `mapstructure:"TIMEOUT"`
+	SwaggerEnabled bool          `mapstructure:"SWAGGER_ENABLED"`
 }
 
 type JWT struct {

@@ -45,12 +45,6 @@ var DefaultCorsConfig = cors.Config{
 	MaxAge:           12 * time.Hour,
 }
 
-type Options struct {
-	LoggerSkipPath   []string
-	CorsAllowOrigins []string
-	CorsConfig       *cors.Config
-}
-
 func NewRouter(c config.API) *gin.Engine {
 	r := gin.New()
 
