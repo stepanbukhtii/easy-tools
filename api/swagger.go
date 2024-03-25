@@ -5,34 +5,64 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/stepanbukhtii/easy-tools/api/swaggerui"
+	"gopkg.in/yaml.v3"
+	"io"
 	"net/http"
-	"strings"
 )
 
-type SwaggerFile struct {
-	URL  string `json:"url"`
-	Name string `json:"name"`
+type swaggerContent struct {
+	Info info `yaml:"info"`
 }
 
-func RegisterSwagger(r *gin.Engine, docsFs embed.FS, nameToURLFiles map[string]string) {
-	var swaggerFiles []SwaggerFile
-	for name, url := range nameToURLFiles {
-		if strings.HasPrefix(url, "/") {
-			url = fmt.Sprintf("/swagger%s", url)
-		} else {
-			url = fmt.Sprintf("/swagger/%s", url)
+type info struct {
+	Title string `yaml:"title"`
+}
+
+type swaggerConfigUrl struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
+func RegisterSwagger(r *gin.Engine, docsFs embed.FS) error {
+	files, err := docsFs.ReadDir(".")
+	if err != nil {
+		return err
+	}
+
+	var swaggerConfigURLs []swaggerConfigUrl
+	for _, f := range files {
+		if f.IsDir() {
+			continue
 		}
-		swaggerFiles = append(swaggerFiles, SwaggerFile{
-			URL:  url,
-			Name: name,
+
+		file, err := docsFs.Open(f.Name())
+		if err != nil {
+			return err
+		}
+
+		fileContent, err := io.ReadAll(file)
+		if err != nil {
+			return err
+		}
+
+		var data swaggerContent
+		if err := yaml.Unmarshal(fileContent, &data); err != nil {
+			continue
+		}
+
+		swaggerConfigURLs = append(swaggerConfigURLs, swaggerConfigUrl{
+			Name: data.Info.Title,
+			URL:  fmt.Sprintf("/swagger/%s", f.Name()),
 		})
 	}
 
 	r.StaticFS("/swagger-ui", http.FS(swaggerui.FilesFS))
 
 	r.GET("/swagger-config", func(c *gin.Context) {
-		c.JSON(200, map[string][]SwaggerFile{"urls": swaggerFiles})
+		c.JSON(200, map[string][]swaggerConfigUrl{"urls": swaggerConfigURLs})
 	})
 
 	r.StaticFS("/swagger", http.FS(docsFs))
+
+	return nil
 }

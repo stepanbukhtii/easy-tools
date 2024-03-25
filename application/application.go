@@ -4,44 +4,25 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
 
+type Application interface {
+	Run(ctx context.Context) error
+	Shutdown(ctx context.Context)
+}
+
 var ShutdownTimeout = 30 * time.Second
 
-type Application struct {
-	sigChan chan os.Signal
-}
-
-func NewApplication() Application {
-	return Application{
-		sigChan: make(chan os.Signal, 1),
-	}
-}
-
-func (a *Application) Run(shutdownFunc func(context.Context)) context.Context {
-	signal.Notify(a.sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		<-a.sigChan
-		cancel()
-
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), ShutdownTimeout)
-		defer shutdownCancel()
-
-		shutdownFunc(shutdownCtx)
-	}()
-
-	return ctx
-}
-
-func RunApplication(shutdownFunc func(context.Context)) context.Context {
+func RunApplication(app Application) error {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
+	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
+
 	go func() {
 		<-sigChan
 		cancel()
@@ -49,8 +30,17 @@ func RunApplication(shutdownFunc func(context.Context)) context.Context {
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), ShutdownTimeout)
 		defer shutdownCancel()
 
-		shutdownFunc(shutdownCtx)
+		app.Shutdown(shutdownCtx)
+		wg.Done()
 	}()
 
-	return ctx
+	wg.Add(1)
+
+	if err := app.Run(ctx); err != nil {
+		return err
+	}
+
+	wg.Wait()
+
+	return nil
 }
